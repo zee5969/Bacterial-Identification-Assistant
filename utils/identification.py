@@ -19,7 +19,7 @@ from groq import Groq
 
 def get_client():
     """Create a Groq client using the key from Streamlit secrets."""
-    api_key = st.secrets.get("GROQ_API_KEY")
+    api_key = st.secrets.get("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")
     if not api_key:
         return None
     return Groq(api_key=api_key)

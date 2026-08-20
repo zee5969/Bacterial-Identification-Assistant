@@ -1,70 +1,99 @@
 """
-ai_explain.py
--------------
-Optional AI explanation layer for the Bacterial Identification Assistant,
-using the Groq API (free tier).
+identification.py
+------------------
+Core matching/scoring engine for the Bacterial Identification Assistant.
 
-IMPORTANT: This module never identifies bacteria. It only takes a result
-that utils/identification.py has already computed (deterministically) and
-asks an LLM to explain it in plainer, more student-friendly language.
+This module contains NO Streamlit code and NO AI calls. It is plain,
+testable Python: load a CSV of known organism profiles, compare a
+user's entered characteristics against every organism, and return a
+ranked list of matches with a transparent score.
 
-If the API call fails for any reason (no key, network issue, rate limit),
-this fails gracefully — the app should keep working with the rule-based
-result alone.
+app.py imports four things from this file:
+    - load_database()
+    - identify(user_input, db)
+    - TEST_COLUMNS
+    - NOT_TESTED
 """
 
-import streamlit as st
-from groq import Groq
+import pandas as pd
+
+# Value shown in dropdowns meaning "the student did not enter this test."
+# Rows with this value are simply skipped during comparison (not counted
+# as a mismatch), so a partially-filled-in form still produces useful
+# partial matches instead of failing outright.
+NOT_TESTED = "Not tested"
+
+# The full list of biochemical/morphological test columns used for
+# scoring. Kept in one place so app.py can reference it too (e.g. when
+# suggesting which additional tests would help differentiate organisms).
+TEST_COLUMNS = [
+    "Gram",
+    "Shape",
+    "Arrangement",
+    "Catalase",
+    "Coagulase",
+    "Oxidase",
+    "Indole",
+    "Urease",
+    "Citrate",
+    "Motility",
+]
+
+DATABASE_PATH = "data/bacteria.csv"
 
 
-def get_client():
-    """Create a Groq client using the key from Streamlit secrets."""
-    api_key = st.secrets.get("GROQ_API_KEY")
-    if not api_key:
-        return None
-    return Groq(api_key=api_key)
+def load_database(path: str = DATABASE_PATH) -> pd.DataFrame:
+    """Load the organism reference table from CSV."""
+    df = pd.read_csv(path)
+    return df
 
 
-def explain_result(organism: str, comparisons: list, score: int, notes: str = ""):
+def identify(user_input: dict, db: pd.DataFrame) -> list:
     """
-    Ask the AI to explain an already-computed identification result in
-    simple language for an MLT student. Returns a string, or None if the
-    explanation couldn't be generated (caller should handle this gracefully).
+    Compare the student's entered characteristics against every organism
+    in the database and return a ranked list of match results.
     """
-    client = get_client()
-    if client is None:
-        return None
+    results = []
 
-    comparison_lines = "\n".join(
-        f"- {test}: student result = {user_val}, database profile = {db_val} ({status})"
-        for test, user_val, db_val, status in comparisons
-    )
+    for _, row in db.iterrows():
+        comparisons = []
+        match_count = 0
+        applicable_count = 0
 
-    prompt = f"""You are helping a BS Medical Laboratory Technology (MLT) student
-understand a bacterial identification result from an educational tool.
+        for test in TEST_COLUMNS:
+            user_val = user_input.get(test, NOT_TESTED)
+            db_val = row[test]
 
-The result was already determined by a rule-based matching engine — do NOT
-change the identification, do NOT introduce any characteristics that are
-not listed below, and do NOT state anything as clinical or diagnostic fact.
-Your only job is to explain, in simple student-friendly language, why these
-characteristics point to this organism.
+            if user_val == NOT_TESTED:
+                continue
 
-Identified organism: {organism}
-Database Match Score: {score}%
-Additional notes: {notes or "none"}
+            if pd.isna(db_val) or db_val == "NA":
+                continue
 
-Characteristics compared:
-{comparison_lines}
+            applicable_count += 1
 
-Write a short (3-5 sentence) explanation suitable for a student studying
-for a Clinical Bacteriology exam. Keep it educational, not clinical."""
+            if db_val == "Variable":
+                match_count += 1
+                comparisons.append((test, user_val, db_val, "Consistent (variable)"))
+            elif user_val == db_val:
+                match_count += 1
+                comparisons.append((test, user_val, db_val, "Match"))
+            else:
+                comparisons.append((test, user_val, db_val, "Mismatch"))
 
-    try:
-        response = client.chat.completions.create(
-            model="openai/gpt-oss-20b",
-            max_tokens=400,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return response.choices[0].message.content
-    except Exception:
-        return None
+        if applicable_count == 0:
+            continue
+
+        score = round((match_count / applicable_count) * 100)
+
+        results.append({
+            "organism": row["Organism"],
+            "score": score,
+            "match_count": match_count,
+            "applicable_count": applicable_count,
+            "comparisons": comparisons,
+            "notes": row.get("Notes", ""),
+        })
+
+    results.sort(key=lambda r: r["score"], reverse=True)
+    return results

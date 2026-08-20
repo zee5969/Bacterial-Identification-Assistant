@@ -1,0 +1,10 @@
+Organism,Gram,Shape,Arrangement,Catalase,Coagulase,Oxidase,Indole,Urease,Citrate,Motility,Notes
+Staphylococcus aureus,Positive,Cocci,Clusters,Positive,Positive,NA,NA,Variable,NA,Negative,"Coagulase-positive Staph; urease usually positive but strain-variable"
+Staphylococcus epidermidis,Positive,Cocci,Clusters,Positive,Negative,NA,NA,Positive,NA,Negative,"Coagulase-negative; common skin commensal, opportunistic on devices/catheters"
+Staphylococcus saprophyticus,Positive,Cocci,Clusters,Positive,Negative,NA,NA,Positive,NA,Negative,"Coagulase-negative; classically novobiocin-resistant (test not in current dataset); associated with UTIs in young women"
+Streptococcus pyogenes,Positive,Cocci,Chains,Negative,NA,NA,NA,Negative,NA,Negative,"Group A Strep; beta-hemolytic (hemolysis test not in current dataset)"
+Streptococcus pneumoniae,Positive,Cocci,Pairs (diplococci),Negative,NA,NA,NA,Negative,NA,Negative,"Alpha-hemolytic; optochin-sensitive, bile-soluble (tests not in current dataset)"
+Escherichia coli,Negative,Rod,Single/short chains,Positive,NA,Negative,Positive,Negative,Negative,Positive,"Classic IMViC: Indole+, MR+, VP-, Citrate-"
+Klebsiella pneumoniae,Negative,Rod,Single/pairs,Positive,NA,Negative,Negative,Positive,Positive,Negative,"Non-motile, mucoid colonies; IMViC: Indole-, MR-, VP+, Citrate+"
+Proteus mirabilis,Negative,Rod,Single/pairs,Positive,NA,Negative,Negative,Positive,Variable,Positive,"Classic swarming motility on agar; strongly urease positive"
+Pseudomonas aeruginosa,Negative,Rod,Single/pairs,Positive,NA,Positive,Negative,Variable,Positive,Positive,"Oxidase-positive, non-fermenter; often blue-green pigment (pyocyanin)"

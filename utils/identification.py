@@ -1,114 +1,70 @@
 """
-identification.py
-------------------
-The "brain" of the Bacterial Identification Assistant.
+ai_explain.py
+-------------
+Optional AI explanation layer for the Bacterial Identification Assistant,
+using the Groq API (free tier).
 
-This module contains plain, testable Python functions that:
-1. Load the bacterial knowledge base (data/bacteria.csv)
-2. Compare a user's entered lab characteristics against every organism
-3. Calculate a transparent "Database Match Score" for each organism
-4. Return ranked results with an explanation of what matched
+IMPORTANT: This module never identifies bacteria. It only takes a result
+that utils/identification.py has already computed (deterministically) and
+asks an LLM to explain it in plainer, more student-friendly language.
 
-No Streamlit code lives here on purpose — this logic can be tested
-and reused independently of the web interface.
+If the API call fails for any reason (no key, network issue, rate limit),
+this fails gracefully — the app should keep working with the rule-based
+result alone.
 """
 
-import pandas as pd
-
-# The characteristic columns we compare on.
-# ("Organism" and "Notes" are metadata, not test results.)
-TEST_COLUMNS = [
-    "Gram",
-    "Shape",
-    "Arrangement",
-    "Catalase",
-    "Coagulase",
-    "Oxidase",
-    "Indole",
-    "Urease",
-    "Citrate",
-    "Motility",
-]
-
-# What we accept as "the user didn't provide/test this characteristic".
-NOT_TESTED = "Not tested"
+import streamlit as st
+from groq import Groq
 
 
-def load_database(csv_path="data/bacteria.csv"):
-    """Load the bacterial knowledge base from CSV into a DataFrame."""
-    return pd.read_csv(csv_path)
+def get_client():
+    """Create a Groq client using the key from Streamlit secrets."""
+    api_key = st.secrets.get("GROQ_API_KEY")
+    if not api_key:
+        return None
+    return Groq(api_key=api_key)
 
 
-def score_organism(user_input: dict, organism_row: pd.Series):
+def explain_result(organism: str, comparisons: list, score: int, notes: str = ""):
     """
-    Compare one organism's known profile against the user's input.
-
-    Returns a dict with:
-        - matches: list of (test, user_value, db_value, status) for tests
-          that were actually compared
-        - applicable_count: how many tests counted toward the score
-        - match_count: how many of those the organism matched on
-        - score: percentage match (0-100), or None if nothing was
-          applicable/comparable (e.g. user tested nothing relevant)
-
-    Scoring rules (deliberately simple and explainable):
-      - If the user marked a test "Not tested", we skip it entirely —
-        it doesn't help or hurt any organism's score.
-      - If the organism's database value for that test is "NA"
-        (not applicable to that organism, e.g. Coagulase for a
-        Gram-negative rod), we also skip it — a "NA" is not a
-        disagreement, so it must never be scored as a mismatch.
-      - If the database value is "Variable", we count it as a match
-        but flag it, since some strains legitimately go either way.
-      - Otherwise, it's a straightforward match or mismatch.
+    Ask the AI to explain an already-computed identification result in
+    simple language for an MLT student. Returns a string, or None if the
+    explanation couldn't be generated (caller should handle this gracefully).
     """
-    comparisons = []
-    applicable = 0
-    matched = 0
+    client = get_client()
+    if client is None:
+        return None
 
-    for test in TEST_COLUMNS:
-        user_value = user_input.get(test, NOT_TESTED)
-        db_value = organism_row[test]
+    comparison_lines = "\n".join(
+        f"- {test}: student result = {user_val}, database profile = {db_val} ({status})"
+        for test, user_val, db_val, status in comparisons
+    )
 
-        if user_value == NOT_TESTED:
-            continue  # user didn't test this — never penalize or reward
-        if db_value == "NA":
-            continue  # not applicable to this organism — never a mismatch
+    prompt = f"""You are helping a BS Medical Laboratory Technology (MLT) student
+understand a bacterial identification result from an educational tool.
 
-        applicable += 1
+The result was already determined by a rule-based matching engine — do NOT
+change the identification, do NOT introduce any characteristics that are
+not listed below, and do NOT state anything as clinical or diagnostic fact.
+Your only job is to explain, in simple student-friendly language, why these
+characteristics point to this organism.
 
-        if db_value == "Variable":
-            matched += 1
-            comparisons.append((test, user_value, db_value, "possible (variable)"))
-        elif user_value == db_value:
-            matched += 1
-            comparisons.append((test, user_value, db_value, "match"))
-        else:
-            comparisons.append((test, user_value, db_value, "mismatch"))
+Identified organism: {organism}
+Database Match Score: {score}%
+Additional notes: {notes or "none"}
 
-    score = round((matched / applicable) * 100) if applicable > 0 else None
+Characteristics compared:
+{comparison_lines}
 
-    return {
-        "organism": organism_row["Organism"],
-        "notes": organism_row.get("Notes", ""),
-        "comparisons": comparisons,
-        "applicable_count": applicable,
-        "match_count": matched,
-        "score": score,
-    }
+Write a short (3-5 sentence) explanation suitable for a student studying
+for a Clinical Bacteriology exam. Keep it educational, not clinical."""
 
-
-def identify(user_input: dict, df: pd.DataFrame):
-    """
-    Run the user's input against every organism in the database.
-
-    Returns a list of result dicts (see score_organism), sorted by
-    score descending. Organisms with score None (nothing applicable
-    was compared) or 0 mismatched-everything are still included so
-    the caller can decide how to present "no match" — filtering is
-    a UI decision, not something this function should hide.
-    """
-    results = [score_organism(user_input, row) for _, row in df.iterrows()]
-    results = [r for r in results if r["score"] is not None]
-    results.sort(key=lambda r: r["score"], reverse=True)
-    return results
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            max_tokens=400,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.choices[0].message.content
+    except Exception:
+        return None

@@ -19,7 +19,7 @@ from groq import Groq
 
 def get_client():
     """Create a Groq client using the key from Streamlit secrets."""
-    api_key = st.secrets.get("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")
+    api_key = st.secrets.get("GROQ_API_KEY")
     if not api_key:
         return None
     return Groq(api_key=api_key)
@@ -61,7 +61,7 @@ for a Clinical Bacteriology exam. Keep it educational, not clinical."""
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-20b",
             max_tokens=400,
             messages=[{"role": "user", "content": prompt}],
         )

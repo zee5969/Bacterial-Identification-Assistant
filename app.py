@@ -53,6 +53,15 @@ def inject_css():
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
 
+/* ---------- Hide default Streamlit chrome ---------- */
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
+header { visibility: hidden; }
+[data-testid="stToolbar"] { display: none !important; }
+[data-testid="stHeader"] { display: none !important; }
+.stDeployButton { display: none !important; }
+.viewerBadge_container__1QSob { display: none !important; }
+
 :root {
     --ink: #24242b;
     --ink-soft: #5b5b66;

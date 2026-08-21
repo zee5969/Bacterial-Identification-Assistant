@@ -16,6 +16,20 @@ import streamlit as st
 
 from utils.identification import load_database, identify, TEST_COLUMNS, NOT_TESTED
 
+
+def render_html(html: str):
+    """
+    Render an HTML string with st.markdown, safely.
+
+    Markdown treats any line indented 4+ spaces as a literal code block.
+    Since our HTML strings are written indented to match the surrounding
+    Python code (for readability), passing them straight to st.markdown
+    would make Streamlit print the raw tags as text instead of rendering
+    them. Stripping leading whitespace from every line avoids that.
+    """
+    lines = [line.lstrip() for line in html.strip("\n").split("\n")]
+    st.markdown("\n".join(lines), unsafe_allow_html=True)
+
 try:
     from utils.ai_explain import explain_result
 except Exception:
@@ -35,245 +49,242 @@ DB = load_database()
 # ----------------------------------------------------------------------
 
 def inject_css():
-    st.markdown(
-        """
-        <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+    render_html("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
 
-        :root {
-            --ink: #24242b;
-            --ink-soft: #5b5b66;
-            --paper: #faf9f5;
-            --card: #ffffff;
-            --line: #e6e3da;
-            --gram-pos: #6b3fa0;
-            --gram-pos-bg: #f2ecf9;
-            --gram-neg: #c1445a;
-            --gram-neg-bg: #fbecef;
-            --match: #2f7d55;
-            --match-bg: #eaf5ee;
-            --mismatch: #b3492f;
-            --mismatch-bg: #fbeee9;
-            --variable: #b8862c;
-            --variable-bg: #fbf3e3;
-            --accent: #1f6f6b;
-        }
+:root {
+    --ink: #24242b;
+    --ink-soft: #5b5b66;
+    --paper: #faf9f5;
+    --card: #ffffff;
+    --line: #e6e3da;
+    --gram-pos: #6b3fa0;
+    --gram-pos-bg: #f2ecf9;
+    --gram-neg: #c1445a;
+    --gram-neg-bg: #fbecef;
+    --match: #2f7d55;
+    --match-bg: #eaf5ee;
+    --mismatch: #b3492f;
+    --mismatch-bg: #fbeee9;
+    --variable: #b8862c;
+    --variable-bg: #fbf3e3;
+    --accent: #1f6f6b;
+}
 
-        html, body, [class*="css"]  {
-            font-family: 'Inter', sans-serif;
-            color: var(--ink);
-        }
+html, body, [class*="css"]  {
+    font-family: 'Inter', sans-serif;
+    color: var(--ink);
+}
 
-        .stApp {
-            background: var(--paper);
-        }
+.stApp {
+    background: var(--paper);
+}
 
-        /* ---------- Hero header ---------- */
-        .bia-hero {
-            padding: 2.1rem 1.8rem 1.8rem 1.8rem;
-            background: linear-gradient(155deg, #1f6f6b 0%, #164f4c 100%);
-            border-radius: 18px;
-            margin-bottom: 1.4rem;
-            box-shadow: 0 8px 24px rgba(22, 79, 76, 0.18);
-        }
-        .bia-hero .eyebrow {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 0.72rem;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            color: #bfe3d9;
-            margin-bottom: 0.5rem;
-        }
-        .bia-hero h1 {
-            font-family: 'Fraunces', serif;
-            font-weight: 600;
-            font-size: 2.05rem;
-            color: #ffffff;
-            margin: 0 0 0.35rem 0;
-            line-height: 1.15;
-        }
-        .bia-hero p {
-            color: #d9ece7;
-            font-size: 0.98rem;
-            margin: 0;
-            max-width: 46ch;
-        }
+/* ---------- Hero header ---------- */
+.bia-hero {
+    padding: 2.1rem 1.8rem 1.8rem 1.8rem;
+    background: linear-gradient(155deg, #1f6f6b 0%, #164f4c 100%);
+    border-radius: 18px;
+    margin-bottom: 1.4rem;
+    box-shadow: 0 8px 24px rgba(22, 79, 76, 0.18);
+}
+.bia-hero .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #bfe3d9;
+    margin-bottom: 0.5rem;
+}
+.bia-hero h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 2.05rem;
+    color: #ffffff;
+    margin: 0 0 0.35rem 0;
+    line-height: 1.15;
+}
+.bia-hero p {
+    color: #d9ece7;
+    font-size: 0.98rem;
+    margin: 0;
+    max-width: 46ch;
+}
 
-        .bia-notice {
-            background: #fff8ec;
-            border: 1px solid #f0dfb3;
-            border-left: 4px solid #b8862c;
-            border-radius: 10px;
-            padding: 0.85rem 1.05rem;
-            font-size: 0.88rem;
-            color: #6b5427;
-            margin-bottom: 1.6rem;
-        }
+.bia-notice {
+    background: #fff8ec;
+    border: 1px solid #f0dfb3;
+    border-left: 4px solid #b8862c;
+    border-radius: 10px;
+    padding: 0.85rem 1.05rem;
+    font-size: 0.88rem;
+    color: #6b5427;
+    margin-bottom: 1.6rem;
+}
 
-        /* ---------- Section labels ---------- */
-        .bia-section-label {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 0.72rem;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: var(--accent);
-            margin: 1.6rem 0 0.35rem 0;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .bia-section-label::after {
-            content: "";
-            flex: 1;
-            height: 1px;
-            background: var(--line);
-        }
-        .bia-section-title {
-            font-family: 'Fraunces', serif;
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: var(--ink);
-            margin: 0 0 0.9rem 0;
-        }
+/* ---------- Section labels ---------- */
+.bia-section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 1.6rem 0 0.35rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.bia-section-label::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+}
+.bia-section-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0 0 0.9rem 0;
+}
 
-        /* ---------- Buttons ---------- */
-        .stButton > button {
-            background: var(--accent);
-            color: #ffffff;
-            border: none;
-            border-radius: 10px;
-            padding: 0.6rem 1.2rem;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: transform 0.08s ease, box-shadow 0.15s ease;
-            box-shadow: 0 2px 6px rgba(31, 111, 107, 0.25);
-        }
-        .stButton > button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(31, 111, 107, 0.32);
-            color: #ffffff;
-        }
+/* ---------- Buttons ---------- */
+.stButton > button {
+    background: var(--accent);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.6rem 1.2rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: transform 0.08s ease, box-shadow 0.15s ease;
+    box-shadow: 0 2px 6px rgba(31, 111, 107, 0.25);
+}
+.stButton > button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(31, 111, 107, 0.32);
+    color: #ffffff;
+}
 
-        /* ---------- Result card ---------- */
-        .bia-result-card {
-            background: var(--card);
-            border: 1px solid var(--line);
-            border-radius: 16px;
-            padding: 1.3rem 1.4rem;
-            margin-bottom: 1.1rem;
-            display: flex;
-            gap: 1.3rem;
-            align-items: center;
-        }
-        .bia-ring {
-            width: 84px;
-            height: 84px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            position: relative;
-        }
-        .bia-ring::before {
-            content: "";
-            position: absolute;
-            inset: 8px;
-            background: var(--card);
-            border-radius: 50%;
-        }
-        .bia-ring-score {
-            font-family: 'IBM Plex Mono', monospace;
-            font-weight: 600;
-            font-size: 1.05rem;
-            z-index: 1;
-            color: var(--ink);
-        }
-        .bia-result-name {
-            font-family: 'Fraunces', serif;
-            font-size: 1.18rem;
-            font-weight: 600;
-            margin: 0 0 0.3rem 0;
-            color: var(--ink);
-        }
-        .bia-tag {
-            display: inline-block;
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 0.7rem;
-            letter-spacing: 0.05em;
-            padding: 0.18rem 0.55rem;
-            border-radius: 999px;
-            font-weight: 600;
-        }
-        .bia-tag-pos { background: var(--gram-pos-bg); color: var(--gram-pos); }
-        .bia-tag-neg { background: var(--gram-neg-bg); color: var(--gram-neg); }
+/* ---------- Result card ---------- */
+.bia-result-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 1.3rem 1.4rem;
+    margin-bottom: 1.1rem;
+    display: flex;
+    gap: 1.3rem;
+    align-items: center;
+}
+.bia-ring {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+}
+.bia-ring::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    background: var(--card);
+    border-radius: 50%;
+}
+.bia-ring-score {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 1.05rem;
+    z-index: 1;
+    color: var(--ink);
+}
+.bia-result-name {
+    font-family: 'Fraunces', serif;
+    font-size: 1.18rem;
+    font-weight: 600;
+    margin: 0 0 0.3rem 0;
+    color: var(--ink);
+}
+.bia-tag {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    padding: 0.18rem 0.55rem;
+    border-radius: 999px;
+    font-weight: 600;
+}
+.bia-tag-pos { background: var(--gram-pos-bg); color: var(--gram-pos); }
+.bia-tag-neg { background: var(--gram-neg-bg); color: var(--gram-neg); }
 
-        /* ---------- Comparison table ---------- */
-        .bia-comp-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 0.6rem;
-            font-size: 0.87rem;
-        }
-        .bia-comp-table td {
-            padding: 0.5rem 0.6rem;
-            border-bottom: 1px solid var(--line);
-        }
-        .bia-comp-table tr:last-child td { border-bottom: none; }
-        .bia-comp-test { color: var(--ink-soft); width: 30%; }
-        .bia-comp-vals { font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem; }
-        .bia-status-pill {
-            font-family: 'Inter', sans-serif;
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 0.15rem 0.55rem;
-            border-radius: 999px;
-            white-space: nowrap;
-        }
-        .bia-status-match { background: var(--match-bg); color: var(--match); }
-        .bia-status-mismatch { background: var(--mismatch-bg); color: var(--mismatch); }
-        .bia-status-variable { background: var(--variable-bg); color: var(--variable); }
+/* ---------- Comparison table ---------- */
+.bia-comp-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.6rem;
+    font-size: 0.87rem;
+}
+.bia-comp-table td {
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid var(--line);
+}
+.bia-comp-table tr:last-child td { border-bottom: none; }
+.bia-comp-test { color: var(--ink-soft); width: 30%; }
+.bia-comp-vals { font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem; }
+.bia-status-pill {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.bia-status-match { background: var(--match-bg); color: var(--match); }
+.bia-status-mismatch { background: var(--mismatch-bg); color: var(--mismatch); }
+.bia-status-variable { background: var(--variable-bg); color: var(--variable); }
 
-        .bia-note {
-            font-size: 0.83rem;
-            color: var(--ink-soft);
-            font-style: italic;
-            margin-top: 0.5rem;
-        }
+.bia-note {
+    font-size: 0.83rem;
+    color: var(--ink-soft);
+    font-style: italic;
+    margin-top: 0.5rem;
+}
 
-        [data-testid="stExpander"] {
-            border: 1px solid var(--line);
-            border-radius: 12px;
-            background: var(--card);
-        }
+[data-testid="stExpander"] {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--card);
+}
 
-        /* ---------- Footer ---------- */
-        .bia-footer {
-            margin-top: 2.4rem;
-            padding-top: 1.2rem;
-            border-top: 1px solid var(--line);
-            text-align: center;
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 0.78rem;
-            color: var(--ink-soft);
-            letter-spacing: 0.02em;
-        }
-        .bia-footer strong {
-            color: var(--accent);
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+/* ---------- Footer ---------- */
+.bia-footer {
+    margin-top: 2.4rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--line);
+    text-align: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    letter-spacing: 0.02em;
+}
+.bia-footer strong {
+    color: var(--accent);
+}
+</style>
+""")
 
 
 def score_ring_html(score: int, gram: str) -> str:
     color = "#6b3fa0" if gram == "Positive" else "#c1445a"
-    return f"""
-    <div class="bia-ring" style="background: conic-gradient({color} {score * 3.6}deg, #eee2 0deg);">
-        <span class="bia-ring-score">{score}%</span>
-    </div>
-    """
+    return (
+        f'<div class="bia-ring" style="background: conic-gradient({color} {score * 3.6}deg, #eee2 0deg);">'
+        f'<span class="bia-ring-score">{score}%</span>'
+        f'</div>'
+    )
 
 
 def gram_tag_html(gram: str) -> str:
@@ -293,13 +304,13 @@ def comparison_table_html(comparisons) -> str:
     rows = ""
     for test, user_val, db_val, status in comparisons:
         cls = status_class.get(status, "bia-status-match")
-        rows += f"""
-        <tr>
-            <td class="bia-comp-test">{test}</td>
-            <td class="bia-comp-vals">{user_val} → {db_val}</td>
-            <td><span class="bia-status-pill {cls}">{status}</span></td>
-        </tr>
-        """
+        rows += (
+            f'<tr>'
+            f'<td class="bia-comp-test">{test}</td>'
+            f'<td class="bia-comp-vals">{user_val} → {db_val}</td>'
+            f'<td><span class="bia-status-pill {cls}">{status}</span></td>'
+            f'</tr>'
+        )
     return f'<table class="bia-comp-table">{rows}</table>'
 
 
@@ -308,29 +319,23 @@ inject_css()
 # ----------------------------------------------------------------------
 # HERO
 # ----------------------------------------------------------------------
-st.markdown(
-    """
-    <div class="bia-hero">
-        <div class="eyebrow">Clinical Bacteriology · Decision Support Tool</div>
-        <h1>🧫 Bacterial Identification Assistant</h1>
-        <p>Enter Gram stain, morphology, and biochemical test results to see a
-        transparent, database-driven match — built for MLT students learning
-        the identification workflow.</p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+render_html("""
+<div class="bia-hero">
+<div class="eyebrow">Clinical Bacteriology · Decision Support Tool</div>
+<h1>🧫 Bacterial Identification Assistant</h1>
+<p>Enter Gram stain, morphology, and biochemical test results to see a
+transparent, database-driven match — built for MLT students learning
+the identification workflow.</p>
+</div>
+""")
 
-st.markdown(
-    """
-    <div class="bia-notice">
-        <strong>Educational use only.</strong> This tool is not intended to replace
-        laboratory procedures, validated identification systems, antimicrobial
-        susceptibility testing, professional interpretation, or clinical diagnosis.
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+render_html("""
+<div class="bia-notice">
+<strong>Educational use only.</strong> This tool is not intended to replace
+laboratory procedures, validated identification systems, antimicrobial
+susceptibility testing, professional interpretation, or clinical diagnosis.
+</div>
+""")
 
 # Options for each test, in the order we want them shown.
 OPTIONS = {
@@ -403,23 +408,20 @@ with tab_identify:
 
             for r in shown:
                 organism_gram = DB.loc[DB["Organism"] == r["organism"], "Gram"].iloc[0]
-                st.markdown(
-                    f"""
-                    <div class="bia-result-card">
-                        {score_ring_html(r['score'], organism_gram)}
-                        <div>
-                            <div class="bia-result-name">{r['organism']}</div>
-                            {gram_tag_html(organism_gram)}
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
+                render_html(
+                    f'<div class="bia-result-card">'
+                    f'{score_ring_html(r["score"], organism_gram)}'
+                    f'<div>'
+                    f'<div class="bia-result-name">{r["organism"]}</div>'
+                    f'{gram_tag_html(organism_gram)}'
+                    f'</div>'
+                    f'</div>'
                 )
 
                 with st.expander(f"View matching characteristics — {r['organism']}"):
-                    st.markdown(comparison_table_html(r["comparisons"]), unsafe_allow_html=True)
+                    render_html(comparison_table_html(r["comparisons"]))
                     if r["notes"]:
-                        st.markdown(f'<div class="bia-note">Note: {r["notes"]}</div>', unsafe_allow_html=True)
+                        render_html(f'<div class="bia-note">Note: {r["notes"]}</div>')
 
                     st.write(
                         f"Matched **{r['match_count']} of {r['applicable_count']}** applicable "
@@ -494,12 +496,9 @@ with tab_practice:
 # ----------------------------------------------------------------------
 # FOOTER
 # ----------------------------------------------------------------------
-st.markdown(
-    """
-    <div class="bia-footer">
-        Built by <strong>Zeeshan Ali</strong> · BS Medical Laboratory Technology ·
-        Riphah International University
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+render_html("""
+<div class="bia-footer">
+Built by <strong>Zeeshan Ali</strong> · BS Medical Laboratory Technology ·
+Riphah International University
+</div>
+""")

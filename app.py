@@ -86,6 +86,24 @@ html, body, [class*="css"]  {
     color: var(--ink);
 }
 
+/* Force Streamlit's native widget labels/options to stay readable, even
+   if the visitor's phone or browser is set to dark mode. Without this,
+   Streamlit can switch widget text (like radio button options) to white,
+   which becomes invisible against our light background. Scoped to native
+   widget containers only, so it doesn't affect our custom-colored HTML
+   (hero banner, footer, tags, etc). */
+[data-testid="stRadio"] label,
+[data-testid="stRadio"] p,
+[data-testid="stWidgetLabel"] label,
+[data-testid="stWidgetLabel"] p,
+[data-testid="stSelectbox"] label,
+[data-testid="stTextInput"] label,
+[data-testid="stCheckbox"] label,
+.stRadio label,
+.stRadio p {
+    color: var(--ink) !important;
+}
+
 .stApp {
     background: var(--paper);
 }
